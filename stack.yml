@@ -1,0 +1,51 @@
+version: "3.1"
+services:
+    db:
+        build:
+            context: .
+            dockerfile: Dockerfile-db
+        image: db
+        container_name: db
+        ports:
+          - 5432:5432
+        environment:
+            POSTGRES_DB: noverde
+            POSTGRES_USER: noverde_user
+            POSTGRES_PASSWORD: noverde_pass
+
+    pgadmin:
+        depends_on:
+            - db
+        image: dpage/pgadmin4
+        container_name: pgadmin
+        ports:
+            - 82:80
+        environment:
+            PGADMIN_DEFAULT_EMAIL: pgadmin@teste.com
+            PGADMIN_DEFAULT_PASSWORD: pgadmin_pass
+
+    broker:
+        image: rabbitmq:3.8
+        container_name: broker
+        ports:
+            - 5672:5672
+
+    noverde:
+        depends_on:
+            - db
+            - broker
+        build: .
+        image: noverde
+        container_name: noverde
+        command: /usr/bin/supervisord
+        ports:
+            - 81:5000
+        environment:
+            DB_HOST: db
+            DB_PORT: 5432
+            DB_NAME: noverde
+            DB_USER: noverde_user
+            DB_PASS: noverde_pass
+            BROKER: 'amqp://broker'
+        volumes:
+            - ./noverdeapi:/opt/noverde/app
